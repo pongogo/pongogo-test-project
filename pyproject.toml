@@ -1,0 +1,8 @@
+[project]
+name = "pongogo-test-project"
+version = "0.1.0"
+description = "Sample project for Pongogo E2E testing"
+requires-python = ">=3.10"
+
+[project.scripts]
+main = "src.main:main"
