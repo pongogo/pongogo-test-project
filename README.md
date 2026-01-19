@@ -1,50 +1,76 @@
 # Pongogo Test Project
 
-**Purpose**: Sample project for Pongogo E2E testing.
+**Purpose**: Isolated repository for Pongogo E2E testing infrastructure.
 
-## Important
+## ⚠️ IMPORTANT: Pull-Only Repository
 
-> **This repository is PULL-ONLY**
->
-> - No direct pushes allowed
-> - No force pushes allowed
-> - Branch protection enforced on main
-> - Deploy keys are read-only
+This repository is **READ-ONLY** for automated systems:
 
-## What This Repo Is For
+- **No direct pushes** to `main` branch (branch protection enabled)
+- **No force pushes** allowed
+- **All changes** require PR with approval
+- **CI/VM systems** have read-only access only
 
-This repository provides a minimal project structure that Pongogo's test harness can:
+## Access Methods
 
-1. Clone (read-only)
-2. Run `pongogo init` against
-3. Test MCP server functionality
-4. Validate routing, database operations, etc.
+### For CI/CD (GitHub Actions)
+Uses `GITHUB_TOKEN` with default read permissions - no additional setup needed.
 
-## Structure
+### For Azure VM (dev.pongogo.com)
+Requires authentication credential stored in Azure Key Vault:
+
+```bash
+# Retrieve from Key Vault (VM must have Managed Identity with access)
+az keyvault secret show --vault-name pongogo-kv --name "github-pat-test-repo" --query value -o tsv
+```
+
+**Key Vault**: `pongogo-kv` (pongogo-rg resource group)
+
+**Required Secrets**:
+| Secret Name | Purpose | Scope |
+|-------------|---------|-------|
+| `github-pat-test-repo` | Clone test repo | `repo:read` on `pongogo/pongogo-test-project` only |
+
+### Creating the PAT (Admin Task)
+
+1. Go to GitHub Settings → Developer Settings → Fine-grained tokens
+2. Create token with:
+   - **Name**: `pongogo-test-repo-readonly`
+   - **Expiration**: 90 days (or as per policy)
+   - **Repository access**: Only `pongogo/pongogo-test-project`
+   - **Permissions**: Contents: Read-only
+3. Store in Key Vault:
+   ```bash
+   az keyvault secret set --vault-name pongogo-kv --name "github-pat-test-repo" --value "github_pat_xxx"
+   ```
+
+## Project Structure
 
 ```
 pongogo-test-project/
 ├── README.md           # This file
 ├── pyproject.toml      # Python project config
-├── src/
-│   └── main.py         # Sample Python module
-└── .gitignore
+├── .gitignore          # Standard ignores
+└── src/
+    ├── __init__.py
+    └── main.py         # Sample application
 ```
 
-## Usage in Tests
+## Usage in E2E Tests
 
 ```bash
 # Clone (read-only)
-git clone --depth 1 git@github.com:pongogo/pongogo-test-project.git project
-cd project
+git clone https://github.com/pongogo/pongogo-test-project.git
 
-# Initialize Pongogo
+# Run pongogo init
 pongogo init
 
-# Run tests against .pongogo/ directory
-python -m tests.mcp_client --test-all --container pongogo-test-server
+# Verify .pongogo/ created
+ls -la .pongogo/
 ```
 
-## Maintainers
+## Related Documentation
 
-This repo is maintained by the Pongogo team for CI/CD and development testing only.
+- **Parity Todo**: See `tmp/2026_01_19-parity_creation-todo.md` in main pongogo repo
+- **PI-110**: Pull-only enforcement rationale
+- **Key Vault**: `pongogo-kv` in Azure `pongogo-rg`
